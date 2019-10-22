@@ -183,11 +183,28 @@ class BaseClientV2(CommonBaseClient):
         m = self.get_manifest(name, reference)
         return m._content, m._digest
 
+    def get_manifest_v2_and_digest(self, name, reference):
+        m = self.get_manifest_v2(name, reference)
+        return m._content, m._digest
+
     def get_manifest(self, name, reference):
         self.auth.desired_scope = 'repository:%s:*' % name
         response = self._http_response(
             self.MANIFEST, get, name=name, reference=reference,
             schema=self.schema_1_signed,
+        )
+        self._cache_manifest_digest(name, reference, response=response)
+        return _Manifest(
+            content=response.json(),
+            type=response.headers.get('Content-Type', 'application/json'),
+            digest=self._manifest_digests[name, reference],
+        )
+
+    def get_manifest_v2(self, name, reference):
+        self.auth.desired_scope = 'repository:%s:*' % name
+        response = self._http_response(
+            self.MANIFEST, get, name=name, reference=reference,
+            schema=self.schema_2,
         )
         self._cache_manifest_digest(name, reference, response=response)
         return _Manifest(
